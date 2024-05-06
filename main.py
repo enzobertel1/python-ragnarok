@@ -1,7 +1,8 @@
 import gspread
 from google.oauth2.service_account import Credentials
 import requests
-
+import datetime
+import time
 scopes = [
     "https://www.googleapis.com/auth/spreadsheets"
 ]
@@ -56,7 +57,7 @@ def joueur(ws,pseudo,tag,puuid):
 
     ws.update_acell("A5","Solo Queue Classée")
     ws.update_acell("B5","Moyenne Globale")
-    ws.update_acell("C5","Moyenne 20 games")
+    ws.update_acell("C5","Moyenne 20 dernieres games")
     ws.update_acell("D5","Game comptées")
     ws.update_acell("D6",0)
 
@@ -66,6 +67,9 @@ def joueur(ws,pseudo,tag,puuid):
     ws.update_acell("A9","Damage Objectif")
     ws.update_acell("A10","Morts / Minutes")
     ws.update_acell("A11","KDA")
+    ws.update_acell("A12","Vision Score")
+
+    ws.update("B6:C12",[[0,0]for i in range(6,13)])
     
 
     ws.format("A3",{
@@ -102,29 +106,108 @@ def joueur(ws,pseudo,tag,puuid):
 #Mise à jour des stats de chaque joueur dans l'excel
 def update_players():
     wsts = SHEET.worksheets()
-
+    today = datetime.datetime.today().timestamp()-(24*60*60)
+    todayStr= str(int(today))
+    print(todayStr)
     for ws in wsts:
         if ws.acell("E1").value == "PUUID:":
             print("Mise à jour des données de "+ws.acell("B1").value)
 
-
+            ws.update("C6:C12",[[0] for i in range(6,13)])
 
             puuid = ws.acell("F1").value
             url = URL+"lol/match/v5/matches/by-puuid/"+puuid+"/ids"
 
-            response = requests.get(url+"?start=0&count=20&api_key="+API_KEY)
+            nb_games=0
+
+            req = url+"?start=0&count=20&startTime="+todayStr.replace("\'","")+"&api_key="+API_KEY
+
+            response = requests.get(req)
             if response.ok:
                 result = response.json()
-                print(result)
                 for match_id in result:
                     
+
                     url = URL+"lol/match/v5/matches/"+match_id
                     response = requests.get(url+"?start=0&count=20&api_key="+API_KEY)
                     if response.ok:
                         res = response.json()
                         if res["info"]["gameMode"] == "CLASSIC" and res["info"]["gameType"] == "MATCHED_GAME":
+                            nb_games+=1
+                            print('Match ',match_id)
+                            #Incrémente le nombre de games jouées
+                            game_played = float(ws.acell("D6").value.replace(",","."))+1
+                            ws.update_acell("D6",game_played)
+
                             indexPlayer = res["metadata"]["participants"].index(puuid)
-                            print(res["info"]["participants"][indexPlayer])
+                            participants = res["info"]["participants"][indexPlayer]
+
+                            #Minions/Minute
+                            old_mpm = float(ws.acell("B6").value.replace(",","."))
+                            mpm = participants["totalMinionsKilled"] / (res["info"]["gameDuration"]/60)
+                            mean_mpm = ((old_mpm*(game_played-1)) + mpm) /game_played
+                            ws.update_acell("B6", mean_mpm)
+                            ws.update_acell("C6", float(ws.acell("C6").value.replace(",",".")) + mpm)
+
+                            #Kill Participation
+                            old_kp = float(ws.acell("B7").value.replace(",","."))
+                            kp = (participants["assists"] +participants["kills"]) / sum([k["kills"]  for k in res["info"]["participants"] if k["teamId"] == participants["teamId"]] )
+                            mean_kp = ((old_kp*(game_played-1)) + kp) /game_played
+                            ws.update_acell("B7", mean_kp)
+
+                            ws.update_acell("C7", float(ws.acell("C7").value.replace(",",".")) + kp)
+
+                            #Damage
+                            old_dmg = float(ws.acell("B8").value.replace(",","."))
+                            dmg = participants["totalDamageDealtToChampions"] / (res["info"]["gameDuration"]/60)
+                            mean_dmg = ((old_dmg*(game_played-1)) + dmg) /game_played
+                            ws.update_acell("B8", mean_dmg)
+
+                            ws.update_acell("C8", float(ws.acell("C8").value.replace(",",".")) + dmg)
+
+                            #DamageObjective
+                            old_dmgObj = float(ws.acell("B9").value.replace(",","."))
+                            dmgObj = participants["damageDealtToObjectives"]
+                            mean_dmgObj = ((old_dmgObj*(game_played-1)) + dmgObj) /game_played
+                            ws.update_acell("B9", mean_dmgObj)
+
+                            ws.update_acell("C9", float(ws.acell("C9").value.replace(",",".")) + dmgObj)
+
+                            #Deaths/minute
+                            old_dpm = float(ws.acell("B10").value.replace(",","."))
+                            dpm = participants["deaths"] / (res["info"]["gameDuration"]/60)
+                            mean_dpm = ((old_dpm*(game_played-1)) + dpm) /game_played
+                            ws.update_acell("B10", mean_dpm)
+
+                            ws.update_acell("C10", float(ws.acell("C10").value.replace(",",".")) + dpm)
+
+                            #KDA
+                            old_kda = float(ws.acell("B11").value.replace(",","."))
+                            kda = (participants["assists"] +participants["kills"])/ participants["deaths"]
+                            mean_kda = ((old_kda*(game_played-1)) + kda) /game_played
+                            ws.update_acell("B11", mean_kda)
+
+                            ws.update_acell("C11", float(ws.acell("C11").value.replace(",",".")) + kda)
+
+                            #Vision score
+                            old_vs = float(ws.acell("B12").value.replace(",","."))
+                            vs = participants["visionScore"]
+                            mean_vs = ((old_vs*(game_played-1)) + vs) /game_played
+                            ws.update_acell("B12", mean_vs)
+
+                            ws.update_acell("C12", float(ws.acell("C12").value.replace(",",".")) + vs)
+
+                            print("CS/Min=",mpm,";Kill Participation=",kp,";Damage=",dmg,";Damage Obj=",dmgObj,";Morts/Min=",dpm,";KDA=",kda,";Vision=",vs)
+
+                            time.sleep(60)
+   
+
+                if nb_games < 20 and nb_games >0:       
+                    for k in range (6,13):
+                        old = float(ws.acell("C"+str(k)).value.replace(",","."))
+                        print(old)
+                        ws.update_acell("C"+str(k), old/nb_games)
+                    
 
             
 
