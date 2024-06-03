@@ -3,6 +3,8 @@ from google.oauth2.service_account import Credentials
 import requests
 import datetime
 import time
+from player import Player,Role,Roaster
+
 scopes = [
     "https://www.googleapis.com/auth/spreadsheets"
 ]
@@ -13,51 +15,42 @@ MATCH = "/lol/match/v5/matches/by-puuid/{puuid}/ids"
 API_KEY = "RGAPI-c8339727-14f9-4ab4-815a-ea966abf14a6"
 
 SHEET_ID = "1MtUAVv3p2X0syIAfP4Kt62L16Gdder6X66aAjpzKR8M"
-NB_ROWS = 100
-NB_COLS = 20
+
 
 creds = Credentials.from_service_account_file("credentials.json",scopes=scopes)
 client = gspread.authorize(creds)
 
 SHEET = client.open_by_key(SHEET_ID)
 
-def createNewPlayer(sheet_name, pseudo,tag):
-    try:
-        ws = SHEET.worksheet(sheet_name)
-    except BaseException as e:
-        ws = None
+def createNewPlayer(pseudo,tag,role,roster):
     
-    response = requests.get(URL+"riot/account/v1/accounts/by-riot-id/"+pseudo+"/"+tag+"?api_key="+API_KEY)
-    if response.ok:
-        puuid = response.json()["puuid"]
+    p = Player(pseudo,tag,role,roster)
+    p.createWS(SHEET)
 
-        if ws != None:
-            rep = input("Un joueur a déjà ce rôle. Voulez vous le remplacer ? (y/N)")
 
-            if rep == "y" or rep == "Y":
-                SHEET.del_worksheet(ws)
-
-                ws = SHEET.add_worksheet(title=sheet_name,rows=NB_ROWS,cols=NB_COLS)
-
-                joueur(ws,pseudo,tag,puuid)
-        else:
-            ws = SHEET.add_worksheet(title=sheet_name,rows=NB_ROWS,cols=NB_COLS)
-            joueur(ws,pseudo,tag,puuid)
+    
+    
+    
         
 # Créé et formate un joueur dans l'excel de la façon par défaut
-def joueur(ws,pseudo,tag,puuid):
+def joueur(ws,player:Player):
     ws.update_acell("A1","Pseudo:")
-    ws.update_acell("B1",pseudo)
+    ws.update_acell("B1",player.name)
     ws.update_acell("C1","Tag:")
-    ws.update_acell("D1",tag)
+    ws.update_acell("D1",player.tag)
     ws.update_acell("E1","PUUID:")
-    ws.update_acell("F1",puuid)
+    ws.update_acell("F1",player.puuid)
+    ws.update_acell("A2","Role:")
+    ws.update_acell("B2",player.role.value)
+    ws.update_acell("C2","Equipe:")
+    ws.update_acell("D2",player.roster.value)
+    
 
     ws.update_acell("A3","RANG")
 
     ws.update_acell("A5","Solo Queue Classée")
     ws.update_acell("B5","Moyenne Globale")
-    ws.update_acell("C5","Moyenne 20 dernieres games")
+    ws.update_acell("C5","Moyenne dernieres games")
     ws.update_acell("D5","Game comptées")
     ws.update_acell("D6",0)
 
@@ -93,14 +86,25 @@ def joueur(ws,pseudo,tag,puuid):
             "green":109/255,
             "blue": 1/255
         },
+        "horizontalAlignment": "CENTER",
+        "textFormat": {
+            "foregroundColor": {
+                "red": 1.0,
+                "green": 1.0,
+                "blue": 1.0
+            },
+            "fontSize": 12,
+            "bold": True
+    }
     })   
 
-    ws.format("A6:D11",{
+    ws.format("A6:D12",{
         "backgroundColor": {
             "red": 255/255,
             "green":229/255,
             "blue": 153/255
         },
+        "horizontalAlignment": "CENTER",
     })   
 
 #Mise à jour des stats de chaque joueur dans l'excel
@@ -113,14 +117,14 @@ def update_players():
         if ws.acell("E1").value == "PUUID:":
             print("Mise à jour des données de "+ws.acell("B1").value)
 
-            ws.update("C6:C12",[[0] for i in range(6,13)])
+            ws.update([[0] for i in range(6,13)],"C6:C12")
 
             puuid = ws.acell("F1").value
             url = URL+"lol/match/v5/matches/by-puuid/"+puuid+"/ids"
 
             nb_games=0
 
-            req = url+"?start=0&count=20&startTime="+todayStr.replace("\'","")+"&api_key="+API_KEY
+            req = url+"?start=0&count=20&api_key="+API_KEY
 
             response = requests.get(req)
             if response.ok:
@@ -227,10 +231,12 @@ if __name__ == "__main__":
             case "1":
                 pseudo = input("entrer le nom du joueur : ")
                 tag = input("entrer le tag du joueur : ")
-                role= input("entrer le rôle du joueur : ")
+                strRole= input("entrer le rôle du joueur : ")
 
-                if role != "" and tag != "" and pseudo != "":
-                    createNewPlayer(role.upper(),pseudo,tag)
+                print()
+
+                if strRole != "" and tag != "" and pseudo != "":
+                    createNewPlayer(pseudo,tag)
             case "2":
                 update_players()
 
