@@ -85,9 +85,64 @@ def update_players():
                             p.update()
     print("\nJoueurs mis à jour.")
 
-                
-                            
+def level(ws_player,ws_levels,role=Role,col="B",):
+    level_col = "B"
+    match role:
+        case Role.SUPPORT:
+            level_col = "B"
+        case Role.ADC :
+            level_col = "C"
+        case Role.MID:
+            level_col = "D"
+        case Role.JUNGLE:
+            level_col = "E"
+        case Role.TOP:
+            level_col = "F"
+    
+    for i in range(6,13):
+        
+        value = float(ws_player.acell(col+str(i)).value.replace(",","."))
+        print("Value : "+str(value))
 
+        vert = float(ws_levels.acell(level_col+str( 6+3*(i-6))).value.replace(",",".") )
+        orange = float(ws_levels.acell(level_col+str( 7+3*(i-6))).value.replace(",",".") )
+        rouge = float(ws_levels.acell(level_col+str( 8+3*(i-6))).value.replace(",",".") )
+
+        if vert > rouge :
+            ws_player.format(col+str(i),{"backgroundColor": {"red": 144/255,"green":238/255,"blue": 144/255},} if value > vert else
+                                        {"backgroundColor": {"red": 255/255,"green":240/255,"blue": 188/255},} if value > orange else
+                                        {"backgroundColor": {"red": 237/255,"green":0/255,"blue": 16/255},})
+        else :
+            ws_player.format(col+str(i),{"backgroundColor": {"red": 144/255,"green":238/255,"blue": 144/255},} if value < vert else
+                                        {"backgroundColor": {"red": 255/255,"green":240/255,"blue": 188/255},} if value < orange else
+                                        {"backgroundColor": {"red": 237/255,"green":0/255,"blue": 16/255},})
+            
+    
+    
+
+def update_levels():
+    wsts = SHEET.worksheets()
+
+    ws_level = SHEET.worksheet("Info_paliers")
+    for ws in wsts:
+        if ws.acell("E1").value == "PUUID:": 
+            match ws.acell("B2").value:
+                case "Support":
+                    level(ws,ws_level,Role.SUPPORT) 
+                    level(ws,ws_level,Role.SUPPORT,"C")    
+                case "Jungle":
+                    level(ws,ws_level,Role.JUNGLE)
+                    level(ws,ws_level,Role.JUNGLE,"C")
+                case "Adc":
+                    level(ws,ws_level,Role.ADC)
+                    level(ws,ws_level,Role.ADC,"C")
+                case "Top":
+                    level(ws,ws_level,Role.TOP)
+                    level(ws,ws_level,Role.TOP,"C")
+                case "Mid":
+                    level(ws,ws_level,Role.MID) 
+                    level(ws,ws_level,Role.MID,"C") 
+            time.sleep(60)
                     
 
             
@@ -100,6 +155,7 @@ if __name__ == "__main__":
         ans = input("Que souhaitez vous faire ?" +
                 "\n\t(1) Créer un joueur"+
                 "\n\t(2) Mettre à jour les stats"+
+                "\n\t(3) Mettre à jour les paliers"+
                 
                 "\n Votre réponse : ")
         
@@ -150,6 +206,9 @@ if __name__ == "__main__":
                             print("Rôle inconnu\n")
             case "2":
                 update_players()
+
+            case "3":
+                update_levels()
             
 
         rep = input("Continuer ? (Y/n) : ")

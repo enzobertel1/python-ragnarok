@@ -210,18 +210,19 @@ class Player :
 
         if response.ok:
                 result = response.json()
-                return list(filter((lambda x : (x not in matchsAlreadyDone)), result))
+                return [x for x in result if x not in matchsAlreadyDone]
         else:
             raise BaseException("Exception : getMatchIds => La requête n'a pas fonctionnée")
         
     def update(self) :
         try:
             matchIds = self.getLastMatchsIds()
-            
+            print(matchIds)
             if len(matchIds)> 0:
                 self.ws.update([[0] for _ in range(6,13)],"C6:C12")
 
             nb_games=0
+            self.ws.update_acell("D7",0)
             for match_id in matchIds :
                 try:
                     
@@ -231,6 +232,8 @@ class Player :
                     game_played = float(self.ws.acell("D6").value.replace(",","."))+1
                     self.ws.update_acell("D6",game_played)
                     nb_games+=1
+
+                    self.ws.update_acell("D7",nb_games)
 
                     fill = False
                     for i in range(1,21):
