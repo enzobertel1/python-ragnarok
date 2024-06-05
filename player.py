@@ -199,8 +199,9 @@ class Player :
         matchsAlreadyDone = []
 
         for i in range(1,21):
-            if (self.ws.acell("G"+str(i)).value != None):
-                matchsAlreadyDone.append(self.ws.acell("G"+str(i)).value)
+            m = self.ws.acell("G"+str(i)).value
+            if m != None:
+                matchsAlreadyDone.append(m)
 
         url = URL+"lol/match/v5/matches/by-puuid/"+self.puuid+"/ids"
         

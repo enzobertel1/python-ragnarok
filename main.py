@@ -205,6 +205,8 @@ if __name__ == "__main__":
                         case _ :
                             print("Rôle inconnu\n")
             case "2":
+                print("Update des joueurs attendre 60 secondes")
+                time.sleep(60)
                 update_players()
 
             case "3":
