@@ -199,7 +199,7 @@ class Player :
         matchsAlreadyDone = []
 
         for i in range(1,21):
-            if (self.ws.acell("G"+str(i)).value == None):
+            if (self.ws.acell("G"+str(i)).value != None):
                 matchsAlreadyDone.append(self.ws.acell("G"+str(i)).value)
 
         url = URL+"lol/match/v5/matches/by-puuid/"+self.puuid+"/ids"
@@ -210,6 +210,7 @@ class Player :
 
         if response.ok:
                 result = response.json()
+                print(matchsAlreadyDone)
                 return [x for x in result if x not in matchsAlreadyDone]
         else:
             raise BaseException("Exception : getMatchIds => La requête n'a pas fonctionnée")
