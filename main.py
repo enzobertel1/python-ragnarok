@@ -129,20 +129,29 @@ def update_levels():
             match ws.acell("B2").value:
                 case "Support":
                     level(ws,ws_level,Role.SUPPORT) 
+                    time.sleep(90)
                     level(ws,ws_level,Role.SUPPORT,"C")    
+                    time.sleep(90)
                 case "Jungle":
                     level(ws,ws_level,Role.JUNGLE)
+                    time.sleep(90)
                     level(ws,ws_level,Role.JUNGLE,"C")
+                    time.sleep(90)
                 case "Adc":
                     level(ws,ws_level,Role.ADC)
+                    time.sleep(90)
                     level(ws,ws_level,Role.ADC,"C")
+                    time.sleep(90)
                 case "Top":
                     level(ws,ws_level,Role.TOP)
+                    time.sleep(90)
                     level(ws,ws_level,Role.TOP,"C")
+                    time.sleep(90)
                 case "Mid":
                     level(ws,ws_level,Role.MID) 
+                    time.sleep(90)
                     level(ws,ws_level,Role.MID,"C") 
-            time.sleep(60)
+                    time.sleep(90)
                     
 
             
